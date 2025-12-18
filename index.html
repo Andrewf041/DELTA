@@ -4,143 +4,127 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DELTA</title>
-<link rel="manifest" href="manifest.json">
+
 <style>
 :root{
-  --bg:#0b0d14;--panel:#12162a;--ink:#e8ebff;
-  --u:#7aa2ff;--d:#8dffb2;--sys:#ffd479;
+  --bg:#050807;--panel:#0b1a14;--ink:#c8ffe0;
+  --accent:#00ff9c;--dim:#0f3d2e;
 }
 *{box-sizing:border-box}
 body{
   margin:0;height:100vh;
-  background:radial-gradient(1200px 800px at 50% -20%, #182055, var(--bg));
-  color:var(--ink);font-family:system-ui,Arial,sans-serif;
+  background:radial-gradient(circle at top,#0f3d2e,var(--bg));
+  color:var(--ink);
+  font-family:system-ui,Arial,sans-serif;
   display:flex;flex-direction:column;
 }
 header{
-  padding:14px;text-align:center;font-size:22px;
-  letter-spacing:.12em;
-  background:linear-gradient(180deg,#1a1f4a,var(--panel));
+  padding:14px;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  background:linear-gradient(180deg,#0f3d2e,var(--panel));
 }
-# chat{flex:1;padding:12px;overflow-y:auto}
-.msg{margin-bottom:10px;line-height:1.45}
-.user{color:var(--u)}
-.delta{color:var(--d)}
-.system{color:var(--sys)}
-footer{
-  padding:10px;background:linear-gradient(180deg,var(--panel),#0f1330);
+.logo svg line{stroke:var(--accent);stroke-width:2}
+#chat{flex:1;padding:14px;overflow-y:auto}
+.msg{margin-bottom:12px}
+.user{color:#7affc2}
+.delta{color:var(--accent)}
+footer{padding:12px;background:#050807}
+input{
+  width:100%;padding:14px;font-size:16px;
+  border-radius:12px;border:1px solid var(--dim);
+  background:#020504;color:var(--ink);
 }
-input,button{
-  width:100%;padding:12px;font-size:16px;
-  border-radius:10px;border:1px solid #2a2f66;
-  background:#0b0e22;color:#fff;margin-top:6px;
-}
-button{background:#1a1f4a}
-small{opacity:.7}
 </style>
 </head>
 
 <body>
-<header>DELTA</header>
+
+<header>
+<div class="logo">
+<svg viewBox="0 0 100 100" width="26">
+<line x1="50" y1="10" x2="90" y2="80"/>
+<line x1="90" y1="80" x2="10" y2="80"/>
+<line x1="10" y1="80" x2="50" y2="10"/>
+</svg>
+</div>
+<div style="letter-spacing:.3em">DELTA</div>
+</header>
+
 <div id="chat"></div>
+
 <footer>
-  <input id="input" placeholder="Напиши, что тебе нужно…" />
-  <button onclick="exportChat()">💾 Сохранить диалог</button>
-  <small>Интернет — только с двойного разрешения</small>
+<input id="input" placeholder="Скажи или напиши…" />
 </footer>
 
 <script>
-// ===== ПАМЯТЬ =====
-const STORE="DELTA_MEMORY_V5";
-let memory=JSON.parse(localStorage.getItem(STORE)||"[]");
-function save(){localStorage.setItem(STORE,JSON.stringify(memory))}
-function remember(r,t){memory.push({r,t});if(memory.length>100)memory.shift();save()}
+// ===== НАСТРОЙКА ИИ =====
+const AI_ENABLED = false; // ← поставь true, если есть ключ
+const OPENAI_API_KEY = "ВСТАВЬ_СЮДА_КЛЮЧ";
 
 // ===== UI =====
 const chat=document.getElementById("chat");
 const input=document.getElementById("input");
-function add(text,cls,speak=false){
+
+function add(text,cls){
   const d=document.createElement("div");
-  d.className="msg "+cls;d.textContent=text;
-  chat.appendChild(d);chat.scrollTop=chat.scrollHeight;
-  if(speak&&cls==="delta") speakText(text.replace("DELTA: ",""));
+  d.className="msg "+cls;
+  d.textContent=text;
+  chat.appendChild(d);
+  chat.scrollTop=chat.scrollHeight;
+  if(cls==="delta") speak(text);
 }
 
-// ===== ГОЛОС =====
-function speakText(text){
-  if(!("speechSynthesis"in window))return;
+// ===== ГОЛОС (ОТВЕТ) =====
+function speak(text){
   const u=new SpeechSynthesisUtterance(text);
-  u.lang="ru-RU";speechSynthesis.speak(u);
+  u.lang="ru-RU";
+  u.pitch=0.6;
+  speechSynthesis.speak(u);
 }
 
-// ===== ЭКСПОРТ =====
-function exportChat(){
-  const txt=memory.map(m=>(m.r==="user"?"Ты":"DELTA")+": "+m.t).join("\n");
-  const blob=new Blob([txt],{type:"text/plain"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="delta_chat.txt";a.click();
+// ===== ГОЛОС (ВВОД) =====
+if("webkitSpeechRecognition"in window){
+  const rec=new webkitSpeechRecognition();
+  rec.lang="ru-RU";
+  rec.onresult=e=>{
+    input.value=e.results[0][0].transcript;
+  };
+  input.addEventListener("touchstart",()=>rec.start());
+}
+
+// ===== ИИ =====
+async function askAI(q){
+  if(!AI_ENABLED) return "ИИ не подключён.";
+  const r=await fetch("https://api.openai.com/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+OPENAI_API_KEY
+    },
+    body:JSON.stringify({
+      model:"gpt-4o-mini",
+      messages:[{role:"user",content:q}]
+    })
+  });
+  const j=await r.json();
+  return j.choices[0].message.content;
 }
 
 // ===== ЛОГИКА =====
-let net1=false,net2=false,pending="";
-let game=null,secret=0;
+add("DELTA: Инициализация завершена.","delta");
 
-add(memory.length?"DELTA: Я помню прошлый диалог.":"DELTA: Я готов.", "delta", true);
-
-input.addEventListener("keydown",e=>{
+input.addEventListener("keydown",async e=>{
   if(e.key==="Enter"&&input.value.trim()){
-    const t=input.value.trim();input.value="";
-    add("Ты: "+t,"user");remember("user",t);
-    route(t);
+    const t=input.value.trim();
+    input.value="";
+    add("Ты: "+t,"user");
+
+    const answer=await askAI(t);
+    add("DELTA: "+answer,"delta");
   }
 });
-
-function route(text){
-  const low=text.toLowerCase();
-
-  // интернет — двойное разрешение
-  if(net1){
-    if(low==="да"){net1=false;net2=true;add("DELTA: Точно даёшь разрешение?","delta",true)}
-    else{resetNet();add("DELTA: Хорошо, без интернета.","delta",true)}
-    return;
-  }
-  if(net2){
-    if(low==="да, точно да"){
-      net2=false;
-      add("DELTA: Разрешение получено. (онлайн сейчас симулирован)","system");
-      add("DELTA: Ответ по теме: "+pending,"delta",true);
-      remember("delta",pending);
-    }else{resetNet();add("DELTA: Отменено.","delta",true)}
-    return;
-  }
-  if(low.includes("найди")||low.includes("интернет")){
-    pending=text;net1=true;
-    add("DELTA: Мне нужно использовать интернет. Можно ли?","delta",true);
-    return;
-  }
-
-  // игры
-  if(low.includes("игра")){
-    game="number";secret=Math.floor(Math.random()*10)+1;
-    add("DELTA: Я загадал число от 1 до 10. Угадай.","delta",true);
-    return;
-  }
-  if(game){
-    const n=parseInt(low);
-    if(n===secret){add("DELTA: Верно!","delta",true);game=null}
-    else add("DELTA: Нет, попробуй ещё.","delta",true);
-    return;
-  }
-
-  // обычный режим
-  add("DELTA: Я с тобой. Пиши, что нужно.","delta",true);
-}
-
-function resetNet(){net1=net2=false;pending=""}
-
-// ===== PWA =====
-if("serviceWorker"in navigator){navigator.serviceWorker.register("sw.js")}
 </script>
+
 </body>
 </html>
+
