@@ -14,15 +14,14 @@
   --accent:#10a37f;
   --text:#e5e5e5;
 }
-
 *{box-sizing:border-box}
 
 body{
   margin:0;
+  height:100vh;
   background:var(--bg);
   color:var(--text);
-  font-family:system-ui,-apple-system,"Segoe UI",Arial;
-  height:100vh;
+  font-family:system-ui,Arial;
   display:flex;
   flex-direction:column;
 }
@@ -32,14 +31,26 @@ header{
   display:flex;
   align-items:center;
   gap:10px;
-  padding:14px;
+  padding:12px;
   border-bottom:1px solid #2a2a2a;
-  font-weight:600;
 }
+header h1{font-size:16px;margin:0}
 
-.logo svg{
-  width:28px;
-  height:28px;
+/* ===== CHAT TABS ===== */
+#tabs{
+  display:flex;
+  gap:6px;
+  overflow-x:auto;
+}
+.tab{
+  padding:6px 10px;
+  border-radius:8px;
+  border:1px solid #2a2a2a;
+  cursor:pointer;
+}
+.tab.active{
+  background:var(--accent);
+  color:#000;
 }
 
 /* ===== CHAT ===== */
@@ -49,36 +60,20 @@ header{
   padding:16px;
   display:flex;
   flex-direction:column;
-  gap:16px;
+  gap:14px;
 }
-
-/* ===== MESSAGES ===== */
 .msg{
-  display:flex;
-  gap:10px;
-  max-width:90%;
+  max-width:85%;
 }
-
-.msg.user{
-  align-self:flex-end;
-  justify-content:flex-end;
-}
-
-.msg.delta{
-  align-self:flex-start;
-}
+.msg.user{align-self:flex-end}
+.msg.delta{align-self:flex-start}
 
 .bubble{
-  background:var(--panel);
-  padding:14px 16px;
+  padding:12px 14px;
   border-radius:14px;
-  line-height:1.4;
-  white-space:pre-wrap;
+  background:var(--panel);
 }
-
-.user .bubble{
-  background:var(--user);
-}
+.user .bubble{background:var(--user)}
 
 .time{
   font-size:11px;
@@ -88,111 +83,129 @@ header{
 
 /* ===== INPUT ===== */
 footer{
-  padding:12px;
+  padding:10px;
   border-top:1px solid #2a2a2a;
+  display:flex;
+  gap:8px;
+  align-items:center;
 }
-
-input{
-  width:100%;
-  padding:14px;
+input[type=text]{
+  flex:1;
+  padding:12px;
   border-radius:12px;
   border:none;
-  outline:none;
   background:var(--panel);
   color:var(--text);
-  font-size:16px;
 }
-
-input::placeholder{color:#888}
+button{
+  background:var(--accent);
+  border:none;
+  border-radius:12px;
+  padding:12px;
+  cursor:pointer;
+}
+input[type=file]{display:none}
 </style>
 </head>
 
 <body>
 
 <header>
-  <div class="logo">
-    <svg viewBox="0 0 100 100">
-      <polygon points="50,5 95,90 5,90" fill="none" stroke="#10a37f" stroke-width="8"/>
-      <polygon points="50,30 70,65 50,55 30,75 40,50" fill="#10a37f"/>
-    </svg>
-  </div>
-  DELTA
+  <h1>DELTA</h1>
+  <div id="tabs"></div>
+  <button onclick="newChat()">+</button>
 </header>
 
 <div id="chat"></div>
 
 <footer>
-  <input id="input" placeholder="Напиши, что тебе нужно…" autocomplete="off">
+  <label>
+    📎
+    <input type="file" id="file" multiple>
+  </label>
+  <input id="input" type="text" placeholder="Сообщение…">
+  <button onclick="send()">➡️</button>
 </footer>
 
 <script>
-const chat = document.getElementById("chat");
-const input = document.getElementById("input");
+let chats = JSON.parse(localStorage.getItem("delta_chats")) || {};
+let active = localStorage.getItem("delta_active") || null;
+
+if(!localStorage.getItem("creator")){
+  localStorage.setItem("creator","you");
+}
+
+function save(){
+  localStorage.setItem("delta_chats",JSON.stringify(chats));
+  localStorage.setItem("delta_active",active);
+}
+
+function newChat(){
+  const id="chat_"+Date.now();
+  chats[id]=[];
+  active=id;
+  addDelta("Новый чат создан. Я с тобой.");
+  save();
+  renderTabs(); render();
+}
+
+function renderTabs(){
+  tabs.innerHTML="";
+  for(const id in chats){
+    const t=document.createElement("div");
+    t.className="tab"+(id===active?" active":"");
+    t.textContent=id.slice(-4);
+    t.onclick=()=>{active=id;save();render();renderTabs();}
+    tabs.appendChild(t);
+  }
+}
+
+function render(){
+  chat.innerHTML="";
+  chats[active]?.forEach(m=>{
+    const d=document.createElement("div");
+    d.className="msg "+m.role;
+    d.innerHTML=`<div class="bubble">${m.text}</div><div class="time">${m.time}</div>`;
+    chat.appendChild(d);
+  });
+  chat.scrollTop=chat.scrollHeight;
+}
 
 function time(){
-  return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  return new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 }
 
-function add(text, role){
-  const wrap = document.createElement("div");
-  wrap.className = "msg " + role;
-
-  if(role==="delta"){
-    wrap.innerHTML = `
-      <div class="logo">
-        <svg viewBox="0 0 100 100">
-          <polygon points="50,5 95,90 5,90" fill="none" stroke="#10a37f" stroke-width="6"/>
-          <polygon points="50,30 70,65 50,55 30,75 40,50" fill="#10a37f"/>
-        </svg>
-      </div>
-      <div>
-        <div class="bubble">${text}</div>
-        <div class="time">${time()}</div>
-      </div>
-    `;
-  } else {
-    wrap.innerHTML = `
-      <div>
-        <div class="bubble">${text}</div>
-        <div class="time">${time()}</div>
-      </div>
-    `;
-  }
-
-  chat.appendChild(wrap);
-  chat.scrollTop = chat.scrollHeight;
+function add(role,text){
+  chats[active].push({role,text,time:time()});
+  save(); render();
 }
 
-/* ===== START ===== */
-add("DELTA инициализирован. Я готов работать с тобой.", "delta");
+function addDelta(t){add("delta",t)}
 
-input.addEventListener("keydown", e=>{
-  if(e.key==="Enter" && input.value.trim()){
-    const t = input.value.trim();
-    input.value="";
-    add(t,"user");
-    setTimeout(()=>respond(t),400);
-  }
-});
-
-/* ===== LOCAL INTELLIGENCE ===== */
-function respond(t){
-  t=t.toLowerCase();
-  let r;
-
-  if(/привет|здрав/.test(t)) r="Привет. Я здесь.";
-  else if(/кто ты/.test(t)) r="Я DELTA — твой персональный цифровой ассистент.";
-  else if(/что ты умеешь/.test(t)) r="Общение, логика, помощь, идеи, игры. Интернет подключим позже.";
-  else if(/игра/.test(t)) r="Хочешь игру? Могу начать угадай число или вопросы.";
-  else if(/создател/.test(t)) r="Ты мой создатель. Я работаю для тебя.";
-  else r="Я понял. Опиши задачу подробнее — я разберу её.";
-
-  add(r,"delta");
+function send(){
+  if(!input.value.trim())return;
+  add("user",input.value);
+  const txt=input.value.toLowerCase();
+  input.value="";
+  setTimeout(()=>{
+    if(txt.includes("кто ты")) addDelta("Я DELTA. Ты мой создатель.");
+    else addDelta("Я понял. Продолжай.");
+  },400);
 }
+
+file.onchange=e=>{
+  [...e.target.files].forEach(f=>{
+    add("user","📎 "+f.name);
+  });
+}
+
+if(!active) newChat();
+renderTabs(); render();
 </script>
 
 </body>
 </html>
+
 
 
 
