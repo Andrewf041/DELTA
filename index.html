@@ -252,28 +252,11 @@ function think(t){
   }
 
   // по умолчанию
-  else {
-    r = "Я понял тебя. Что делаем дальше?";
-  }
-
-  add("delta", r);
-}
-
- 
-  file.onchange=e=>{
-  [...e.target.files].forEach(f=>{
-    add("user","📎 "+f.name);
-  });
-}
-
-if(!active) newChat();
-renderTabs();render();
-</script>
-async function respond(text) {
- try {
+  async function respond(text) {
+  try {
     add("…", "delta"); // индикатор ответа
 
-    const response = await fetch("https://delta-5xd8.onrender.com /chat", {
+    const response = await fetch("https://ТВОЙ_RENDER_URL/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -294,6 +277,17 @@ async function respond(text) {
     add("Ошибка соединения с ИИ", "delta");
   }
 }
+
+ 
+  file.onchange=e=>{
+  [...e.target.files].forEach(f=>{
+    add("user","📎 "+f.name);
+  });
+}
+
+if(!active) newChat();
+renderTabs();render();
+</script>
 
 
 </body>
