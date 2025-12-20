@@ -269,6 +269,32 @@ function think(t){
 if(!active) newChat();
 renderTabs();render();
 </script>
+ async function respond(text) {
+  try {
+    add("…", "delta"); // индикатор ответа
+
+    const response = await fetch("https://ТВОЙ_RENDER_URL/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: text
+      })
+    });
+
+    const data = await response.json();
+
+    // удаляем "…"
+    const dots = document.querySelectorAll(".delta");
+    dots[dots.length - 1].remove();
+
+    add(data.reply, "delta");
+  } catch (err) {
+    add("Ошибка соединения с ИИ", "delta");
+  }
+}
+
 
 </body>
 </html>
