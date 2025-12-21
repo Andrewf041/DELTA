@@ -254,11 +254,18 @@ async function respond(text){
   render();
 
   try{
-    const r = await fetch("https://delta-5xd8.onrender.com/chat",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ message:text })
-    });
+    const r = await fetch("https://delta-core.onrender.com/chat", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    message: text,
+    chatId: active,
+    creatorToken: "delta-my-super-secret"
+  })
+});
+ 
     const data = await r.json();
 
     chats[active] = chats[active].filter(m => m !== loader);
