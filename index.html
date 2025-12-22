@@ -124,15 +124,14 @@ const tabs=document.getElementById("tabs");
 let chats=JSON.parse(localStorage.getItem("delta_chats"))||{};
 let active=localStorage.getItem("delta_active");
 let memory=JSON.parse(localStorage.getItem("delta_memory"))||[];
-let lastQuestion=null;
 
-// === СОЗДАТЕЛЬ ===
-if(!localStorage.getItem("delta_creator_id")){
-  localStorage.setItem("delta_creator_id","owner");
+// ===== СОЗДАТЕЛЬ (ТОЛЬКО ДЛЯ ТЕБЯ) =====
+if(!localStorage.getItem("delta_creator")){
+  localStorage.setItem("delta_creator","true");
 }
-const isCreator=true;
+const isCreator = localStorage.getItem("delta_creator")==="true";
 
-// === UTILS ===
+// ===== UTILS =====
 function save(){
   localStorage.setItem("delta_chats",JSON.stringify(chats));
   localStorage.setItem("delta_active",active);
@@ -142,7 +141,7 @@ function time(){
   return new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 }
 
-// === CHAT ===
+// ===== ЧАТ =====
 function newChat(){
   const id="chat_"+Date.now();
   chats[id]=[];
@@ -175,41 +174,45 @@ function add(role,text){
   save(); render();
 }
 
-// === SEND ===
+// ===== ОТПРАВКА =====
 function send(){
   const t=input.value.trim();
   if(!t)return;
   input.value="";
   add("user",t);
-  setTimeout(()=>respond(t),400);
+  respond(t);
 }
 
-// === ЛОГИКА ===
-function respond(t){
-  const text=t.toLowerCase();
-  let r="Я понял. Продолжай.";
+// ===== ИИ (СЕРВЕР) =====
+async function respond(text){
+  add("delta","DELTA думает…");
+  const thinkingIndex = chats[active].length - 1;
 
-  if(isCreator && /кто я/.test(text)) r="Ты мой создатель.";
-  else if(/кто ты/.test(text)) r="Я DELTA.";
-  else if(/привет|здрав/.test(text)) r="Привет. Я на связи.";
-  else if(/как дела/.test(text)) r="В порядке. Слушаю тебя.";
-  else if(/да$/.test(text) && lastQuestion) r="Тогда продолжаем: "+lastQuestion;
-  else if(/нет$/.test(text)) r="Хорошо, идём дальше.";
-  else if(text.endsWith("?")){
-    lastQuestion=t;
-    r="Вопрос принят. Думаю над ответом.";
-  }
-  else if(text===text.toUpperCase() && text.length>5){
-    r="Я понял. Давай спокойно разберёмся.";
-  }
-  else if(text.length<4){
-    r="Можешь уточнить?";
-  }
-  else if(memory.slice(-10).some(m=>m.text===t)){
-    r="Ты уже говорил об этом выше.";
-  }
+  try{
+    const r = await fetch(
+      "https://delta-server.onrender.com",   // ← ЗАМЕНИ НА СВОЙ URL
+      {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({
+          message: text,
+          memory: memory.slice(-30),
+          isCreator: isCreator
+        })
+      }
+    );
 
-  add("delta",r);
+    const data = await r.json();
+
+    chats[active].splice(thinkingIndex,1);
+    render();
+
+    add("delta", data.reply || "Нет ответа.");
+  }catch(e){
+    chats[active].splice(thinkingIndex,1);
+    render();
+    add("delta","Ошибка соединения с сервером.");
+  }
 }
 
 if(!active) newChat();
@@ -218,6 +221,7 @@ renderTabs(); render();
 
 </body>
 </html>
+
 
 
 
