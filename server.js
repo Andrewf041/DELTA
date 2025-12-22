@@ -1,43 +1,63 @@
 import express from "express";
 import cors from "cors";
-import OpenAI from "openai";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 app.use(cors());
 app.use(express.json());
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+/**
+ * Простейшая память диалога (на сессию сервера)
+ * позже можно заменить на БД
+ */
+let memory = [];
 
 app.post("/chat", async (req, res) => {
   try {
-    const userMessage = req.body.message;
+    const { message } = req.body;
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Ты DELTA — персональный ИИ-ассистент. Ты умный, спокойный, логичный. Отвечай по-русски."
-        },
-        { role: "user", content: userMessage }
-      ]
+    if (!message) {
+      return res.status(400).json({ reply: "Пустое сообщение" });
+    }
+
+    // сохраняем в память
+    memory.push({ role: "user", content: message });
+
+    // === ВРЕМЕННАЯ ЛОГИКА (пока без OpenAI) ===
+    let reply = "";
+
+    if (/привет|здрав|hello/i.test(message)) {
+      reply = "Привет. Я на связи.";
+    } else if (/кто ты/i.test(message)) {
+      reply = "Я DELTA. Серверный интеллект.";
+    } else if (/кто я/i.test(message)) {
+      reply = "Ты мой создатель.";
+    } else {
+      reply = "Я получил сообщение: «" + message + "»";
+    }
+
+    memory.push({ role: "assistant", content: reply });
+
+    // ❗ КЛЮЧЕВОЕ МЕСТО
+    return res.json({
+      reply: reply
     });
 
-    res.json({
-      reply: completion.choices[0].message.content
-    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Ошибка ИИ" });
+    console.error("SERVER ERROR:", err);
+    return res.status(500).json({
+      reply: "Ошибка сервера"
+    });
   }
 });
 
-app.listen(PORT, () => {
-  console.log("DELTA AI server running on port", PORT);
+app.get("/", (req, res) => {
+  res.send("DELTA AI server is running");
 });
+
+app.listen(PORT, () => {
+  console.log(`DELTA AI работает на порту ${PORT}`);
+});
+
 
