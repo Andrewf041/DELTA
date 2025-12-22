@@ -50,7 +50,6 @@ header button{
   border:none;
   border-radius:10px;
   padding:6px 10px;
-  cursor:pointer;
 }
 #chat{
   flex:1;
@@ -60,7 +59,7 @@ header button{
   flex-direction:column;
   gap:12px;
 }
-.msg{max-width:85%;display:flex;flex-direction:column}
+.msg{max-width:85%}
 .msg.user{align-self:flex-end}
 .msg.delta{align-self:flex-start}
 .bubble{
@@ -72,19 +71,6 @@ header button{
 .user .bubble{background:var(--user)}
 .time{font-size:10px;opacity:.5;margin-top:3px}
 
-.file{
-  margin-top:6px;
-  font-size:14px;
-}
-.file img{
-  max-width:220px;
-  border-radius:10px;
-}
-.file video{
-  max-width:220px;
-  border-radius:10px;
-}
-
 footer{
   position:sticky;
   bottom:0;
@@ -94,7 +80,7 @@ footer{
   gap:6px;
   background:var(--bg);
 }
-input[type=text]{
+input{
   flex:1;
   padding:12px;
   border-radius:12px;
@@ -108,7 +94,6 @@ button.send{
   border-radius:12px;
   padding:12px 14px;
 }
-input[type=file]{display:none}
 </style>
 </head>
 
@@ -127,38 +112,43 @@ input[type=file]{display:none}
 <div id="chat"></div>
 
 <footer>
-  <label>📎
-    <input type="file" id="file" multiple>
-  </label>
   <input id="input" placeholder="Сообщение…">
   <button class="send" onclick="send()">➤</button>
 </footer>
 
 <script>
-const chat = document.getElementById("chat");
-const input = document.getElementById("input");
-const tabs = document.getElementById("tabs");
-const fileInput = document.getElementById("file");
+const chat=document.getElementById("chat");
+const input=document.getElementById("input");
+const tabs=document.getElementById("tabs");
 
-let chats = JSON.parse(localStorage.getItem("delta_chats")) || {};
-let active = localStorage.getItem("delta_active");
-let context = {};
+let chats=JSON.parse(localStorage.getItem("delta_chats"))||{};
+let active=localStorage.getItem("delta_active");
+let memory=JSON.parse(localStorage.getItem("delta_memory"))||[];
+let lastQuestion=null;
 
+// === СОЗДАТЕЛЬ ===
+if(!localStorage.getItem("delta_creator_id")){
+  localStorage.setItem("delta_creator_id","owner");
+}
+const isCreator=true;
+
+// === UTILS ===
 function save(){
   localStorage.setItem("delta_chats",JSON.stringify(chats));
   localStorage.setItem("delta_active",active);
+  localStorage.setItem("delta_memory",JSON.stringify(memory.slice(-40)));
 }
 function time(){
   return new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
 }
 
+// === CHAT ===
 function newChat(){
   const id="chat_"+Date.now();
   chats[id]=[];
   active=id;
   save(); renderTabs(); render();
 }
-
 function renderTabs(){
   tabs.innerHTML="";
   Object.keys(chats).forEach(id=>{
@@ -169,71 +159,58 @@ function renderTabs(){
     tabs.appendChild(t);
   });
 }
-
 function render(){
   chat.innerHTML="";
   (chats[active]||[]).forEach(m=>{
     const d=document.createElement("div");
     d.className="msg "+m.role;
-    d.innerHTML=`<div class="bubble">${m.text || ""}</div>`;
-    if(m.file) d.querySelector(".bubble").appendChild(m.file);
-    d.innerHTML+=`<div class="time">${m.time}</div>`;
+    d.innerHTML=`<div class="bubble">${m.text}</div><div class="time">${m.time}</div>`;
     chat.appendChild(d);
   });
   chat.scrollTop=chat.scrollHeight;
 }
-
-function add(role,text,file=null){
-  chats[active].push({role,text,time:time(),file});
+function add(role,text){
+  chats[active].push({role,text,time:time()});
+  memory.push({role,text});
   save(); render();
 }
 
+// === SEND ===
 function send(){
   const t=input.value.trim();
-  if(!t) return;
+  if(!t)return;
   input.value="";
   add("user",t);
-  setTimeout(()=>respond(t),300);
+  setTimeout(()=>respond(t),400);
 }
 
-/* ===== ЛОГИКА ===== */
-function respond(text){
-  let r="Я тебя понял. Продолжай.";
-  if(/привет|здрав/.test(text.toLowerCase())) r="Привет. Я здесь.";
-  if(/как дела/.test(text.toLowerCase())) r="В порядке. Готов продолжать разговор.";
-  if(/кто ты/.test(text.toLowerCase())) r="Я DELTA — автономный цифровой собеседник.";
+// === ЛОГИКА ===
+function respond(t){
+  const text=t.toLowerCase();
+  let r="Я понял. Продолжай.";
+
+  if(isCreator && /кто я/.test(text)) r="Ты мой создатель.";
+  else if(/кто ты/.test(text)) r="Я DELTA.";
+  else if(/привет|здрав/.test(text)) r="Привет. Я на связи.";
+  else if(/как дела/.test(text)) r="В порядке. Слушаю тебя.";
+  else if(/да$/.test(text) && lastQuestion) r="Тогда продолжаем: "+lastQuestion;
+  else if(/нет$/.test(text)) r="Хорошо, идём дальше.";
+  else if(text.endsWith("?")){
+    lastQuestion=t;
+    r="Вопрос принят. Думаю над ответом.";
+  }
+  else if(text===text.toUpperCase() && text.length>5){
+    r="Я понял. Давай спокойно разберёмся.";
+  }
+  else if(text.length<4){
+    r="Можешь уточнить?";
+  }
+  else if(memory.slice(-10).some(m=>m.text===t)){
+    r="Ты уже говорил об этом выше.";
+  }
+
   add("delta",r);
 }
-
-/* ===== ФАЙЛЫ ===== */
-fileInput.onchange=e=>{
-  [...e.target.files].forEach(f=>{
-    const wrap=document.createElement("div");
-    wrap.className="file";
-
-    if(f.type.startsWith("image/")){
-      const img=document.createElement("img");
-      img.src=URL.createObjectURL(f);
-      wrap.appendChild(img);
-      add("user","",wrap);
-      add("delta","Я получил изображение. Пока не умею анализировать его содержимое.");
-    }
-    else if(f.type.startsWith("video/")){
-      const v=document.createElement("video");
-      v.src=URL.createObjectURL(f);
-      v.controls=true;
-      wrap.appendChild(v);
-      add("user","",wrap);
-      add("delta","Я получил видеофайл.");
-    }
-    else{
-      wrap.textContent="📄 "+f.name;
-      add("user","",wrap);
-      add("delta","Я получил документ. Пока могу только сохранить его.");
-    }
-  });
-  fileInput.value="";
-};
 
 if(!active) newChat();
 renderTabs(); render();
@@ -241,6 +218,7 @@ renderTabs(); render();
 
 </body>
 </html>
+
 
 
 
