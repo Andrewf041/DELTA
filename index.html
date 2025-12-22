@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DELTA</title>
 
 <style>
@@ -18,13 +18,12 @@
 
 body{
   margin:0;
-  height:100vh;
+  min-height:100vh;
   background:var(--bg);
   color:var(--text);
   font-family:system-ui,Arial;
   display:flex;
   flex-direction:column;
-  overflow:hidden;
 }
 
 /* HEADER */
@@ -103,7 +102,8 @@ header button{
 
 /* INPUT */
 footer{
-  flex-shrink:0;
+  position:sticky;
+  bottom:0;
   padding:8px;
   border-top:1px solid #1f2a25;
   display:flex;
@@ -111,6 +111,7 @@ footer{
   align-items:center;
   background:var(--bg);
 }
+
 input[type=text]{
   flex:1;
   padding:12px;
@@ -120,6 +121,7 @@ input[type=text]{
   color:var(--text);
   font-size:15px;
 }
+
 button.send{
   background:var(--accent);
   border:none;
@@ -127,7 +129,6 @@ button.send{
   padding:12px 14px;
   cursor:pointer;
 }
-input[type=file]{display:none}
 </style>
 </head>
 
@@ -227,7 +228,7 @@ async function think(text){
     });
     const data = await res.json();
     chat.lastChild.remove();
-    add("delta", data.reply || "Нет ответа");
+    add("delta", data.reply || "Нет ответа от ИИ");
   }catch(e){
     chat.lastChild.remove();
     add("delta","Ошибка соединения с сервером");
@@ -241,6 +242,7 @@ render();
 
 </body>
 </html>
+
 
 
 
