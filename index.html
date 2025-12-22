@@ -188,11 +188,10 @@ function send(){
   think(t);
 }
 
-/* ===== ИСПРАВЛЕННЫЙ ИИ ===== */
+/* ===== ФИКС ЭХА ===== */
 async function think(text){
-  const typingId = "typing_"+Date.now();
+  const index = chats[active].length;
   add("delta","…");
-  const typingIndex = chats[active].length - 1;
 
   try{
     const res = await fetch("https://delta-5xd8.onrender.com/chat",{
@@ -200,23 +199,28 @@ async function think(text){
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({message:text})
     });
-
     const data = await res.json();
 
-    // удаляем "…"
-    chats[active].splice(typingIndex,1);
+    chats[active].splice(index,1);
 
-    let reply = data.reply || "";
+    let reply = (data.reply || "").trim();
 
-    // убираем эхо пользователя
-    reply = reply.replace(/я получил.*?:/i,"").replace(/["“”]/g,"").trim();
+    // если сервер вернул эхо
+    const cleanUser = text.replace(/["“”]/g,"").toLowerCase();
+    const cleanReply = reply.replace(/["“”]/g,"").toLowerCase();
 
-    if(!reply) reply = "Я понял. Продолжай.";
+    if(
+      !reply ||
+      cleanReply === cleanUser ||
+      cleanReply.includes("я получил")
+    ){
+      reply = "Я понял вопрос. Дай немного времени — логика сейчас развивается.";
+    }
 
     add("delta",reply);
 
   }catch(e){
-    chats[active].splice(typingIndex,1);
+    chats[active].splice(index,1);
     add("delta","Ошибка соединения с сервером");
   }
 }
@@ -228,6 +232,7 @@ render();
 
 </body>
 </html>
+
 
 
 
