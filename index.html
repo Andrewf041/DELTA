@@ -203,7 +203,7 @@ function render(){
   chat.scrollTop = chat.scrollHeight;
 }
 
-function add(role, text){
+function add("delta", data.reply);
   chats[active].push({ role, text, time: time() });
   save();
   render();
@@ -219,32 +219,35 @@ function send(){
 }
 
 /* ===== ЛОГИКА ===== */
-async function think(t){
+function think(t){
   const text = t.toLowerCase();
-  let reply = null;
+  let r = "";
 
   if(/^(привет|здрав|хай|hello)/.test(text)){
-    reply = "Привет. Я на связи. Что нужно сделать?";
+    r = "Привет. Я на связи. Что нужно сделать?";
   }
   else if(/кто ты/.test(text)){
-    reply = "Я DELTA. Цифровой ассистент.";
+    r = "Я DELTA. Локальный цифровой ассистент.";
   }
   else if(/кто я/.test(text)){
-    reply = "Ты мой создатель. Я это помню.";
+    if(localStorage.getItem("creator")==="you"){
+      r = "Ты мой создатель. Я это знаю.";
+    } else {
+      r = "Ты пользователь системы DELTA.";
+    }
   }
   else if(/что ты умеешь|возможност/.test(text)){
-    reply = "Я могу помогать с логикой, идеями, кодом и анализом. Интернет и расширения подключаются.";
-  }
-  else if(text.length < 10){
-    reply = "Можешь раскрыть мысль подробнее?";
+    r = "Я могу рассуждать, помнить диалоги, работать с файлами и подключаться к ИИ.";
   }
 
-  if(reply){
-    setTimeout(()=>add("delta", reply), 400);
+  // ✅ если нашли локальный ответ
+  if(r){
+    add("delta", r);
     return;
   }
 
-  await respond(t);
+  // ❗ иначе — идём на сервер
+  respond(t);
 }
 
 /* ===== ИИ ===== */
