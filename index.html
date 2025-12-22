@@ -2,8 +2,12 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>DELTA</title>
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 
 <style>
 :root{
@@ -15,42 +19,55 @@
   --text:#e6f2ee;
 }
 *{box-sizing:border-box}
+
 body{
   margin:0;
-  min-height:100vh;
+  height:100dvh;
   background:var(--bg);
   color:var(--text);
   font-family:system-ui,Arial;
   display:flex;
   flex-direction:column;
 }
+
+/* HEADER */
 header{
   display:flex;
   align-items:center;
   gap:10px;
-  padding:10px 12px;
+  padding:10px;
   border-bottom:1px solid #1f2a25;
+  flex-shrink:0;
 }
-.logo{width:30px;height:30px}
-#tabs{display:flex;gap:6px;overflow-x:auto;flex:1}
+
+.logo{
+  width:30px;
+  height:30px;
+}
+
+#tabs{
+  display:flex;
+  gap:6px;
+  overflow-x:auto;
+  flex:1;
+}
+
 .tab{
-  padding:5px 8px;
-  border-radius:8px;
+  padding:6px 10px;
+  border-radius:10px;
   border:1px solid #1f2a25;
   font-size:13px;
+  cursor:pointer;
   opacity:.6;
+  white-space:nowrap;
 }
 .tab.active{
   background:var(--accent);
   color:#000;
   opacity:1;
 }
-header button{
-  background:var(--accent);
-  border:none;
-  border-radius:10px;
-  padding:6px 10px;
-}
+
+/* CHAT */
 #chat{
   flex:1;
   overflow-y:auto;
@@ -59,41 +76,56 @@ header button{
   flex-direction:column;
   gap:12px;
 }
-.msg{max-width:85%}
+
+.msg{
+  display:flex;
+  gap:8px;
+  max-width:90%;
+}
 .msg.user{align-self:flex-end}
 .msg.delta{align-self:flex-start}
+
 .bubble{
   padding:12px 14px;
   border-radius:14px;
   background:var(--panel);
-  font-size:15px;
+  line-height:1.4;
+  word-wrap:break-word;
 }
 .user .bubble{background:var(--user)}
-.time{font-size:10px;opacity:.5;margin-top:3px}
 
+.time{
+  font-size:11px;
+  opacity:.5;
+  margin-top:4px;
+}
+
+/* INPUT */
 footer{
-  position:sticky;
-  bottom:0;
   padding:8px;
   border-top:1px solid #1f2a25;
   display:flex;
   gap:6px;
-  background:var(--bg);
+  align-items:center;
+  flex-shrink:0;
 }
-input{
+input[type=text]{
   flex:1;
   padding:12px;
-  border-radius:12px;
+  border-radius:14px;
   border:none;
   background:var(--panel);
   color:var(--text);
+  font-size:16px;
 }
-button.send{
+button{
   background:var(--accent);
   border:none;
-  border-radius:12px;
+  border-radius:14px;
   padding:12px 14px;
+  cursor:pointer;
 }
+input[type=file]{display:none}
 </style>
 </head>
 
@@ -102,7 +134,7 @@ button.send{
 <header>
   <svg class="logo" viewBox="0 0 100 100">
     <polygon points="50,5 95,90 5,90" fill="none" stroke="#10a37f" stroke-width="6"/>
-    <polygon points="50,30 72,70 28,70" fill="#10a37f"/>
+    <polygon points="50,30 72,70 50,58 28,70" fill="#10a37f"/>
   </svg>
   <strong>DELTA</strong>
   <div id="tabs"></div>
@@ -112,52 +144,51 @@ button.send{
 <div id="chat"></div>
 
 <footer>
-  <input id="input" placeholder="Сообщение…">
-  <button class="send" onclick="send()">➤</button>
+  <label>📎<input type="file" id="file" multiple></label>
+  <input id="input" type="text" placeholder="Сообщение…">
+  <button onclick="send()">➤</button>
 </footer>
 
 <script>
-const chat=document.getElementById("chat");
-const input=document.getElementById("input");
-const tabs=document.getElementById("tabs");
+/* ===== ПАМЯТЬ ===== */
+let chats = JSON.parse(localStorage.getItem("delta_chats")) || {};
+let active = localStorage.getItem("delta_active");
 
-let chats=JSON.parse(localStorage.getItem("delta_chats"))||{};
-let active=localStorage.getItem("delta_active");
-let memory=JSON.parse(localStorage.getItem("delta_memory"))||[];
-
-// ===== СОЗДАТЕЛЬ (ТОЛЬКО ДЛЯ ТЕБЯ) =====
-if(!localStorage.getItem("delta_creator")){
-  localStorage.setItem("delta_creator","true");
+if(!localStorage.getItem("delta_creator_id")){
+  localStorage.setItem("delta_creator_id", Math.random().toString(36).slice(2));
 }
-const isCreator = localStorage.getItem("delta_creator")==="true";
+const CREATOR_ID = localStorage.getItem("delta_creator_id");
 
-// ===== UTILS =====
 function save(){
-  localStorage.setItem("delta_chats",JSON.stringify(chats));
-  localStorage.setItem("delta_active",active);
-  localStorage.setItem("delta_memory",JSON.stringify(memory.slice(-40)));
-}
-function time(){
-  return new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  localStorage.setItem("delta_chats", JSON.stringify(chats));
+  localStorage.setItem("delta_active", active);
 }
 
-// ===== ЧАТ =====
-function newChat(){
-  const id="chat_"+Date.now();
-  chats[id]=[];
-  active=id;
-  save(); renderTabs(); render();
+/* ===== ВСПОМОГАТЕЛЬНОЕ ===== */
+function time(){
+  return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 }
+
+function newChat(){
+  const id = "chat_" + Date.now();
+  chats[id] = [];
+  active = id;
+  save();
+  renderTabs();
+  render();
+}
+
 function renderTabs(){
   tabs.innerHTML="";
-  Object.keys(chats).forEach(id=>{
+  Object.keys(chats).forEach((id,i)=>{
     const t=document.createElement("div");
     t.className="tab"+(id===active?" active":"");
-    t.textContent="Чат";
-    t.onclick=()=>{active=id;save();renderTabs();render();}
+    t.textContent="Чат "+(i+1);
+    t.onclick=()=>{active=id; save(); render(); renderTabs();}
     tabs.appendChild(t);
   });
 }
+
 function render(){
   chat.innerHTML="";
   (chats[active]||[]).forEach(m=>{
@@ -168,59 +199,62 @@ function render(){
   });
   chat.scrollTop=chat.scrollHeight;
 }
+
 function add(role,text){
   chats[active].push({role,text,time:time()});
-  memory.push({role,text});
+  if(chats[active].length>30) chats[active].shift();
   save(); render();
 }
 
-// ===== ОТПРАВКА =====
+/* ===== ОТПРАВКА ===== */
 function send(){
+  if(!input.value.trim()) return;
   const t=input.value.trim();
-  if(!t)return;
   input.value="";
   add("user",t);
-  respond(t);
+  setTimeout(()=>logic(t),200);
 }
 
-// ===== ИИ (СЕРВЕР) =====
-async function respond(text){
-  add("delta","DELTA думает…");
-  const thinkingIndex = chats[active].length - 1;
+/* ===== ЛОГИКА ОТВЕТОВ (БЕЗ ИИ) ===== */
+function logic(t){
+  const text=t.toLowerCase();
+  let r="";
 
-  try{
-    const r = await fetch(
-      "https://delta-server.onrender.com/chat",   // ← ЗАМЕНИ НА СВОЙ URL
-      {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({
-          message: text,
-          memory: memory.slice(-30),
-          isCreator: isCreator
-        })
-      }
-    );
-
-    const data = await r.json();
-
-    chats[active].splice(thinkingIndex,1);
-    render();
-
-    add("delta", data.reply || "Нет ответа.");
-  }catch(e){
-    chats[active].splice(thinkingIndex,1);
-    render();
-    add("delta","Ошибка соединения с сервером.");
+  if(/привет|здрав|хай/.test(text)) r="Привет. Я здесь. Какой у тебя вопрос?";
+  else if(/как дела/.test(text)) r="Работаю стабильно. Готов помочь тебе.";
+  else if(/кто ты/.test(text)) r="Я DELTA — твой персональный цифровой ассистент.";
+  else if(/кто я/.test(text)){
+    r = (localStorage.getItem("delta_creator_id")===CREATOR_ID)
+      ? "Ты мой создатель. Я это помню."
+      : "Ты пользователь DELTA.";
   }
+  else if(/что ты умеешь/.test(text)) r="Общаться, поддерживать диалог, помнить контекст, работать с файлами и логикой.";
+  else if(/таблиц.*умнож/.test(text)){
+    r="Например: 7×8 = 56, 9×9 = 81. Могу продолжить.";
+  }
+  else if(text.endsWith("?")) r="Хороший вопрос. Уточни детали, и я отвечу точнее.";
+  else if(text.length<6) r="Можешь раскрыть мысль подробнее?";
+  else r="Я понял. Продолжай, я слушаю.";
+
+  add("delta", r);
 }
 
+/* ===== ФАЙЛЫ ===== */
+file.onchange=e=>{
+  [...e.target.files].forEach(f=>{
+    add("user","📎 "+f.name);
+  });
+}
+
+/* ===== ИНИЦИАЛИЗАЦИЯ ===== */
 if(!active) newChat();
-renderTabs(); render();
+renderTabs();
+render();
 </script>
 
 </body>
 </html>
+
 
 
 
