@@ -1,0 +1,26 @@
+{
+    "name": "I.V.I. — Intelligent Visual Interface",
+    "short_name": "I.V.I.",
+    "description": "Персональный AI-ассистент нового поколения",
+    "start_url": ".",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#060810",
+    "theme_color": "#060810",
+    "categories": ["utilities", "productivity"],
+    "lang": "ru",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%23060810'/><circle cx='256' cy='256' r='150' stroke='%2300d4ff' stroke-width='4' fill='none' stroke-dasharray='30 15'/><circle cx='256' cy='256' r='110' stroke='%23ffb703' stroke-width='3' fill='none'/><circle cx='256' cy='256' r='70' fill='rgba(0,212,255,0.08)' stroke='%2300d4ff' stroke-width='2'/><text x='256' y='272' text-anchor='middle' font-family='sans-serif' font-size='56' font-weight='bold' fill='white'>I.V.I.</text></svg>",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%23060810'/><circle cx='96' cy='96' r='55' stroke='%2300d4ff' stroke-width='3' fill='none' stroke-dasharray='12 6'/><circle cx='96' cy='96' r='40' stroke='%23ffb703' stroke-width='2' fill='none'/><circle cx='96' cy='96' r='25' fill='rgba(0,212,255,0.1)' stroke='%2300d4ff' stroke-width='1.5'/><text x='96' y='103' text-anchor='middle' font-family='sans-serif' font-size='20' font-weight='bold' fill='white'>I.V.I.</text></svg>",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ]
+}

@@ -3,52 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>I.V.I. - Jarvis Core v2.1</title>
+    <meta name="description" content="I.V.I. — Интеллектуальная Визуальная Система. Персональный AI-ассистент нового поколения.">
+    <meta name="theme-color" content="#060810">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="I.V.I.">
+    <title>I.V.I. — Intelligent Visual Interface</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23060810'/><circle cx='50' cy='50' r='30' stroke='%2300d4ff' stroke-width='2' fill='none' stroke-dasharray='10 5'/><circle cx='50' cy='50' r='20' stroke='%23ffb703' stroke-width='1.5' fill='none'/><text x='50' y='56' text-anchor='middle' font-family='sans-serif' font-size='14' font-weight='bold' fill='white'>IVI</text></svg>">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+    <canvas id="particleCanvas"></canvas>
+    <div class="scanlines"></div>
+
     <div id="app-container">
+
         <div class="top-bar">
             <div class="clock-section">
                 <div class="time-display" id="liveClock">00:00:00</div>
                 <div class="date-display" id="liveDate">Инициализация...</div>
             </div>
-            <div class="weather-section" id="liveWeather">Погода загружается...</div>
+            <div class="status-section">
+                <div class="status-dot"></div>
+                <span class="status-text" id="statusText">CORE INIT</span>
+            </div>
+            <div class="top-right">
+                <div class="weather-section" id="liveWeather">Загрузка...</div>
+                <button class="settings-btn" id="settingsBtn" aria-label="Настройки" title="Настройки">⚙</button>
+            </div>
         </div>
 
-        <div class="jarvis-container">
+        <div class="jarvis-container" id="jarvisCore">
             <div class="ring ring-1"></div>
             <div class="ring ring-2"></div>
-            <div class="core-center"><div class="core-text">I.V.I.</div></div>
+            <div class="ring ring-3"></div>
+            <div class="ring ring-4"></div>
+            <div class="core-glow"></div>
+            <div class="core-center">
+                <div class="core-text">I.V.I.</div>
+            </div>
+        </div>
+
+        <div class="quick-chips" id="quickChips">
+            <button class="chip" data-cmd="погода">🌤️ Погода</button>
+            <button class="chip" data-cmd="/todo">📝 Задачи</button>
+            <button class="chip" data-cmd="сколько дней до Нового года">📅 До НГ</button>
+            <button class="chip" data-cmd="/status">📊 Статус</button>
+            <button class="chip" data-cmd="/help">💡 Помощь</button>
         </div>
 
         <div class="chat-area" id="chat"></div>
 
         <div class="input-area">
-            <input type="text" id="userInput" placeholder="Команда..." autocomplete="off">
-            <button class="send-btn" id="sendBtn">
-                <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            <button class="mic-btn" id="micBtn" aria-label="Голосовой ввод" title="Голосовой ввод">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
             </button>
+            <input type="text" id="userInput" placeholder="Команда, вопрос или /help..." autocomplete="off">
+            <button class="send-btn" id="sendBtn" aria-label="Отправить">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-overlay hidden" id="settingsOverlay">
+        <div class="settings-panel">
+            <div class="settings-header">
+                <span class="settings-title">⚙ Настройки</span>
+                <button class="settings-close" id="settingsClose">✕</button>
+            </div>
+            <div class="settings-body">
+                <div class="setting-item">
+                    <span>🔊 Озвучка ответов</span>
+                    <label class="toggle"><input type="checkbox" id="toggleVoice"><span class="slider"></span></label>
+                </div>
+                <div class="setting-item">
+                    <span>🔔 Звуковые эффекты</span>
+                    <label class="toggle"><input type="checkbox" id="toggleSound"><span class="slider"></span></label>
+                </div>
+                <div class="setting-item">
+                    <span>⌨️ Анимация печати</span>
+                    <label class="toggle"><input type="checkbox" id="toggleTypewriter"><span class="slider"></span></label>
+                </div>
+                <div class="setting-item">
+                    <span>🧠 Самообучение</span>
+                    <label class="toggle"><input type="checkbox" id="toggleLearning"><span class="slider"></span></label>
+                </div>
+                <div class="settings-section-title">Данные</div>
+                <div class="setting-item">
+                    <span>💾 Память: <span id="memCount">0</span> записей</span>
+                    <button class="setting-action-btn" id="btnClearMemory">Очистить</button>
+                </div>
+                <div class="setting-item">
+                    <span>💬 Чат: <span id="chatCount">0</span> сообщ.</span>
+                    <button class="setting-action-btn" id="btnClearChat">Очистить</button>
+                </div>
+                <div class="setting-item">
+                    <span>🧠 Обучение: <span id="learnCount">0</span> взаим.</span>
+                    <button class="setting-action-btn" id="btnResetLearning">Сбросить</button>
+                </div>
+                <div class="settings-section-title">О системе</div>
+                <div class="setting-item about">
+                    <span>I.V.I. v3.0 Full Edition<br>Создатель: Андрей Давидонис<br>ИИ: Pollinations.ai (бесплатно)</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <script src="script.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
